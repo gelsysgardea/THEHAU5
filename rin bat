@@ -1,0 +1,190 @@
+@echo off
+title Configuración Inicial del Bot de Telegram
+echo ============================================
+echo       Configuración Inicial del Bot
+echo ============================================
+echo.
+
+REM Archivo de log para verificar el estado de configuración
+set LOG_FILE=setup_log.txt
+
+REM Crear el archivo de log si no existe
+if not exist %LOG_FILE% (
+    echo Creando archivo de log...
+    (
+        echo CONFIG_JSON=0
+        echo HEADERS_JSON=0
+        echo DEPENDENCIAS=0
+    ) > %LOG_FILE%
+    echo Archivo de log creado: %LOG_FILE%
+)
+
+REM Leer el estado desde el archivo de log
+for /f "tokens=1,2 delims==" %%A in (%LOG_FILE%) do (
+    set %%A=%%B
+)
+
+REM Paso 1: Configurar config.json
+if %CONFIG_JSON%==0 (
+    echo === Paso 1: Configuración de config.json ===
+    set CONFIG_FILE=config.json
+    if exist %CONFIG_FILE% (
+        echo El archivo config.json ya existe.
+        set /p RECONFIG=¿Deseas reconfigurarlo? (S/N): 
+        if /I "!RECONFIG!"=="S" (
+            del %CONFIG_FILE%
+            goto create_config
+        ) else (
+            echo Config.json existente será usado.
+            set CONFIG_JSON=1
+            goto check_headers
+        )
+    )
+
+    :create_config
+    echo Creando config.json...
+    (
+        echo {
+        echo     "telegram_bot_token": "",
+        echo     "telegram_api_id": "",
+        echo     "telegram_api_hash": "",
+        echo     "binance_api_key": "",
+        echo     "binance_api_secret": ""
+        echo }
+    ) > %CONFIG_FILE%
+
+    REM Solicitar datos de configuración
+    setlocal enabledelayedexpansion
+
+    :config_telegram_bot_token
+    echo.
+    echo --- Telegram Bot Token ---
+    set /p TELEGRAM_BOT_TOKEN=Por favor, ingresa el Telegram Bot Token: 
+    if "!TELEGRAM_BOT_TOKEN!"=="" (
+        echo El Telegram Bot Token no puede estar vacío. Intenta nuevamente.
+        goto config_telegram_bot_token
+    )
+
+    :config_telegram_api_id
+    echo.
+    echo --- Telegram API ID ---
+    set /p TELEGRAM_API_ID=Por favor, ingresa el Telegram API ID: 
+    if "!TELEGRAM_API_ID!"=="" (
+        echo El Telegram API ID no puede estar vacío. Intenta nuevamente.
+        goto config_telegram_api_id
+    )
+
+    :config_telegram_api_hash
+    echo.
+    echo --- Telegram API Hash ---
+    set /p TELEGRAM_API_HASH=Por favor, ingresa el Telegram API Hash: 
+    if "!TELEGRAM_API_HASH!"=="" (
+        echo El Telegram API Hash no puede estar vacío. Intenta nuevamente.
+        goto config_telegram_api_hash
+    )
+
+    :config_binance_api_key
+    echo.
+    echo --- Binance API Key ---
+    set /p BINANCE_API_KEY=Por favor, ingresa la Binance API Key: 
+    if "!BINANCE_API_KEY!"=="" (
+        echo La Binance API Key no puede estar vacía. Intenta nuevamente.
+        goto config_binance_api_key
+    )
+
+    :config_binance_api_secret
+    echo.
+    echo --- Binance API Secret ---
+    set /p BINANCE_API_SECRET=Por favor, ingresa la Binance API Secret: 
+    if "!BINANCE_API_SECRET!"=="" (
+        echo La Binance API Secret no puede estar vacía. Intenta nuevamente.
+        goto config_binance_api_secret
+    )
+
+    echo Guardando configuraciones en config.json...
+    (
+        echo {
+        echo     "telegram_bot_token": "!TELEGRAM_BOT_TOKEN!",
+        echo     "telegram_api_id": "!TELEGRAM_API_ID!",
+        echo     "telegram_api_hash": "!TELEGRAM_API_HASH!",
+        echo     "binance_api_key": "!BINANCE_API_KEY!",
+        echo     "binance_api_secret": "!BINANCE_API_SECRET!"
+        echo }
+    ) > %CONFIG_FILE%
+
+    echo Configuración completada exitosamente.
+    set CONFIG_JSON=1
+    (echo CONFIG_JSON=1) > %LOG_FILE%
+)
+
+:check_headers
+REM Paso 2: Crear headers.json
+if %HEADERS_JSON%==0 (
+    echo === Paso 2: Configuración de headers.json ===
+    set HEADERS_FILE=headers.json
+    if exist %HEADERS_FILE% (
+        echo El archivo headers.json ya existe.
+        set /p RECONFIG=¿Deseas reconfigurarlo? (S/N): 
+        if /I "!RECONFIG!"=="S" (
+            del %HEADERS_FILE%
+            goto create_headers
+        ) else (
+            echo Headers.json existente será usado.
+            set HEADERS_JSON=1
+            goto check_dependencies
+        )
+    )
+
+    :create_headers
+    echo Por favor, ingresa el link del hash capturado en DevTools.
+    set /p HASH_URL=Link del hash: 
+    if "!HASH_URL!"=="" (
+        echo El link del hash no puede estar vacío. Intenta nuevamente.
+        goto create_headers
+    )
+
+    echo Creando headers.json...
+    (
+        echo {
+        echo     "url": "!HASH_URL!",
+        echo     "headers": {
+        echo         "accept": "application/json",
+        echo         "content-type": "application/json",
+        echo         "cookie": "TU_COOKIE_AQUÍ",
+        echo         "user-agent": "Mozilla/5.0",
+        echo         "x-trace-id": "TRACE_ID_AQUÍ",
+        echo         "csrfToken": "CSRF_TOKEN_AQUÍ"
+        echo     }
+        echo }
+    ) > %HEADERS_FILE%
+
+    echo Headers.json creado exitosamente.
+    set HEADERS_JSON=1
+    (echo HEADERS_JSON=1) > %LOG_FILE%
+)
+
+:check_dependencies
+REM Paso 3: Instalar dependencias
+if %DEPENDENCIAS%==0 (
+    echo === Paso 3: Instalación de dependencias ===
+    echo Instalando dependencias necesarias...
+    pip install -r requirements.txt
+    if errorlevel 1 (
+        echo Hubo un problema al instalar las dependencias. Revisa el archivo requirements.txt.
+        pause
+        exit
+    )
+    echo Dependencias instaladas exitosamente.
+    set DEPENDENCIAS=1
+    (echo DEPENDENCIAS=1) > %LOG_FILE%
+)
+
+REM Confirmar al usuario
+echo ============================================
+echo      Configuración Finalizada
+echo ============================================
+echo Todo está listo. Ahora puedes ejecutar el bot con:
+echo     python telegram_bot.py
+echo.
+pause
+exit
